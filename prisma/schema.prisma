@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String @id @default(uuid()) // Assuming UUID is generated automatically
+  name     String
+  email    String @unique
+  password String
+}
+
+model Customer {
+  id        String    @id @default(uuid()) // Assuming UUID is generated automatically
+  name      String
+  email     String    @unique
+  image_url String
+  Invoice   Invoice[]
+}
+
+model Invoice {
+  id         String   @id @default(uuid())
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+  amount     Int
+  status     String
+  date       DateTime
+}
+
+model Revenue {
+  id      Int    @id @default(autoincrement())
+  month   String
+  revenue Int
+}
