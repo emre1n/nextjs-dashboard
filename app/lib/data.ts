@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import db from '@/database/db';
 import {
   CustomerField,
   CustomersTable,
@@ -21,11 +21,14 @@ export async function fetchRevenue() {
     // console.log('Fetching revenue data...');
     // await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    const data = await sql<Revenue>`SELECT * FROM revenue`;
+    const data = await db.revenue.findMany();
 
-    // console.log('Data fetch complete after 3 seconds.');
+    const transformedData: Revenue[] = data.map((obj) => ({
+      month: obj.month,
+      revenue: obj.revenue,
+    }));
 
-    return data.rows;
+    return transformedData;
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch revenue data.');
@@ -34,14 +37,33 @@ export async function fetchRevenue() {
 
 export async function fetchLatestInvoices() {
   try {
-    const data = await sql<LatestInvoiceRaw>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
-      LIMIT 5`;
+    const data = await db.invoice.findMany({
+      select: {
+        amount: true,
+        customer: {
+          select: {
+            name: true,
+            email: true,
+            image_url: true,
+          },
+        },
+        id: true,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      take: 5,
+    });
 
-    const latestInvoices = data.rows.map((invoice) => ({
+    const transformedData = data.map((invoice) => ({
+      id: invoice.id.toString(),
+      name: invoice.customer.name,
+      image_url: invoice.customer.image_url,
+      email: invoice.customer.email,
+      amount: invoice.amount,
+    }));
+
+    const latestInvoices = transformedData.map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
     }));
@@ -57,23 +79,40 @@ export async function fetchCardData() {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
     // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
-    const invoiceStatusPromise = sql`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
+    const invoices = await db.invoice.findMany();
+    const customers = await db.customer.findMany();
+    const paidInvoices = await db.invoice.findMany({
+      where: {
+        status: 'paid', // Filter invoices with status 'paid'
+      },
+    });
+
+    const pendingInvoices = await db.invoice.findMany({
+      where: {
+        status: 'pending', // Filter invoices with status 'pending'
+      },
+    });
+
+    const totalPaidAmount = paidInvoices.reduce(
+      (acc, amount) => acc + amount.amount,
+      0,
+    );
+    const totalPendingAmount = pendingInvoices.reduce(
+      (acc, amount) => acc + amount.amount,
+      0,
+    );
 
     const data = await Promise.all([
-      invoiceCountPromise,
-      customerCountPromise,
-      invoiceStatusPromise,
+      invoices,
+      customers,
+      totalPaidAmount,
+      totalPendingAmount,
     ]);
 
-    const numberOfInvoices = Number(data[0].rows[0].count ?? '0');
-    const numberOfCustomers = Number(data[1].rows[0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2].rows[0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2].rows[0].pending ?? '0');
+    const numberOfInvoices = data[0].length;
+    const numberOfCustomers = data[1].length;
+    const totalPaidInvoices = formatCurrency(data[2]);
+    const totalPendingInvoices = formatCurrency(data[3]);
 
     return {
       numberOfCustomers,
