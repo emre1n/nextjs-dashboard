@@ -131,15 +131,28 @@ export async function fetchCardData() {
 }
 
 const ITEMS_PER_PAGE = 6;
-export async function fetchFilteredInvoices(query, currentPage) {
+export async function fetchFilteredInvoices(
+  query: string,
+  currentPage: number,
+) {
   try {
     const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
     const invoicesData = await db.invoice.findMany({
       include: {
-        customer: true, // Include the customer details
+        customer: true,
       },
+      where: {
+        customer: {
+          name: {
+            startsWith: query,
+          },
+        },
+      },
+      take: ITEMS_PER_PAGE,
+      skip: offset,
     });
+
     const invoices = invoicesData.map((invoice) => {
       return {
         id: invoice.id,
