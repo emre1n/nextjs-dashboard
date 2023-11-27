@@ -143,11 +143,27 @@ export async function fetchFilteredInvoices(
         customer: true,
       },
       where: {
-        customer: {
-          name: {
-            startsWith: query,
+        OR: [
+          {
+            customer: {
+              name: {
+                startsWith: query,
+              },
+            },
           },
-        },
+          {
+            customer: {
+              email: {
+                startsWith: query,
+              },
+            },
+          },
+          {
+            status: {
+              startsWith: query,
+            },
+          },
+        ],
       },
       take: ITEMS_PER_PAGE,
       skip: offset,
