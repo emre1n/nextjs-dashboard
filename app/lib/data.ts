@@ -10,6 +10,7 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 import { unstable_noStore as noStore } from 'next/cache';
+import { Customer } from './definitions';
 
 export async function fetchRevenue() {
   noStore();
@@ -198,6 +199,9 @@ export async function fetchInvoicesPages(query: string) {
           { status: { contains: query } },
         ],
       },
+      orderBy: {
+        date: 'desc',
+      },
     });
     const totalPages = Math.ceil(count / ITEMS_PER_PAGE);
     return totalPages;
@@ -233,23 +237,17 @@ export async function fetchInvoicesPages(query: string) {
 //   }
 // }
 
-// export async function fetchCustomers() {
-//   try {
-//     const data = await sql<CustomerField>`
-//       SELECT
-//         id,
-//         name
-//       FROM customers
-//       ORDER BY name ASC
-//     `;
+export async function fetchCustomers() {
+  try {
+    const data = await db.customer.findMany();
 
-//     const customers = data.rows;
-//     return customers;
-//   } catch (err) {
-//     console.error('Database Error:', err);
-//     throw new Error('Failed to fetch all customers.');
-//   }
-// }
+    const customers = data;
+    return customers;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetch all customers.');
+  }
+}
 
 // export async function fetchFilteredCustomers(query: string) {
 //   try {
