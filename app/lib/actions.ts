@@ -66,3 +66,19 @@ export async function updateInvoice(id: string, formData: FormData) {
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
+
+export async function deleteInvoice(id: string) {
+  try {
+    await db.invoice.delete({
+      where: {
+        id: id,
+      },
+    });
+
+    // Assuming revalidatePath is a custom function for revalidation
+    revalidatePath('/dashboard/invoices');
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to delete invoice.');
+  }
+}
