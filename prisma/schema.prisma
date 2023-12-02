@@ -11,14 +11,14 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid()) // Assuming UUID is generated automatically
+  id       String @id @default(uuid())
   name     String
   email    String @unique
   password String
 }
 
 model Customer {
-  id        String    @id @default(uuid()) // Assuming UUID is generated automatically
+  id        String    @id @default(uuid())
   name      String
   email     String    @unique
   image_url String

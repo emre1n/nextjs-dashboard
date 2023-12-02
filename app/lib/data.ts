@@ -12,6 +12,8 @@ import { formatCurrency } from './utils';
 import { unstable_noStore as noStore } from 'next/cache';
 import { Customer } from './definitions';
 
+type Status = 'pending' | 'paid';
+
 export async function fetchRevenue() {
   noStore();
   // Add noStore() here prevent the response from being cached.
@@ -211,31 +213,40 @@ export async function fetchInvoicesPages(query: string) {
   }
 }
 
-// export async function fetchInvoiceById(id: string) {
-//   noStore();
-//   try {
-//     const data = await sql<InvoiceForm>`
-//       SELECT
-//         invoices.id,
-//         invoices.customer_id,
-//         invoices.amount,
-//         invoices.status
-//       FROM invoices
-//       WHERE invoices.id = ${id};
-//     `;
+export async function fetchInvoiceById(id: string) {
+  try {
+    const invoice = await db.invoice.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        customerId: true,
+        amount: true,
+        status: true,
+      },
+    });
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
 
-//     const invoice = data.rows.map((invoice) => ({
-//       ...invoice,
-//       // Convert amount from cents to dollars
-//       amount: invoice.amount / 100,
-//     }));
+    // Convert amount from cents to dollars
+    invoice.amount /= 100;
 
-//     return invoice[0];
-//   } catch (error) {
-//     console.error('Database Error:', error);
-//     throw new Error('Failed to fetch invoice.');
-//   }
-// }
+    // Ensuring status type safety
+    const status: Status = invoice.status as Status;
+
+    const invoiceWithEnumStatus = {
+      ...invoice,
+      status: status,
+    };
+
+    return invoiceWithEnumStatus;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch invoice.');
+  }
+}
 
 export async function fetchCustomers() {
   try {
