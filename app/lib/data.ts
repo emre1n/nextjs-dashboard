@@ -244,7 +244,7 @@ export async function fetchInvoiceById(id: string) {
     return invoiceWithEnumStatus;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoice.');
+    // throw new Error('Failed to fetch invoice.');
   }
 }
 

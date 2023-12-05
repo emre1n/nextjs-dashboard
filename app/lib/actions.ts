@@ -26,14 +26,18 @@ export async function createInvoice(formData: FormData) {
   const amountInCents = amount * 100;
   const date = new Date().toISOString();
 
-  await db.invoice.create({
-    data: {
-      customerId: customerId,
-      amount: amountInCents,
-      status: status,
-      date: date,
-    },
-  });
+  try {
+    await db.invoice.create({
+      data: {
+        customerId: customerId,
+        amount: amountInCents,
+        status: status,
+        date: date,
+      },
+    });
+  } catch (error) {
+    console.error('Database Error:', error);
+  }
 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
@@ -48,26 +52,31 @@ export async function updateInvoice(id: string, formData: FormData) {
 
   const amountInCents = amount * 100;
 
-  await db.invoice.update({
-    where: {
-      id: id,
-    },
-    data: {
-      customer: {
-        connect: {
-          id: customerId,
-        },
+  try {
+    await db.invoice.update({
+      where: {
+        id: id,
       },
-      amount: amountInCents,
-      status: status,
-    },
-  });
+      data: {
+        customer: {
+          connect: {
+            id: customerId,
+          },
+        },
+        amount: amountInCents,
+        status: status,
+      },
+    });
+  } catch (error) {
+    console.error('Database Error:', error);
+  }
 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
 export async function deleteInvoice(id: string) {
+  // throw new Error('Failed to Delete Invoice');
   try {
     await db.invoice.delete({
       where: {
@@ -75,10 +84,8 @@ export async function deleteInvoice(id: string) {
       },
     });
 
-    // Assuming revalidatePath is a custom function for revalidation
     revalidatePath('/dashboard/invoices');
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to delete invoice.');
   }
 }
